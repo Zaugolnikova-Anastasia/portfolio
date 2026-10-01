@@ -19,5 +19,34 @@
   </head>
   <body class="z-body">
     <div id="root"></div>
+  <script id="nbsp-fix">(function () {
+  var RE = /(^|[\s\u00A0«„"(\u2014\u2013])([а-яё]{1,2}|для|без|при|под|над|про|или)[ \t\n\r]+(?=\S)/gi;
+  var SKIP = /^(SCRIPT|STYLE|TEXTAREA|INPUT|CODE|PRE)$/;
+  function fix(t) {
+    var p = t.parentNode;
+    if (!p || SKIP.test(p.nodeName)) return;
+    var s = t.nodeValue, n = s.replace(RE, "$1$2\u00A0").replace(RE, "$1$2\u00A0");
+    if (n !== s) t.nodeValue = n;
+  }
+  function walk(root) {
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), x;
+    while ((x = w.nextNode())) fix(x);
+  }
+  function start() {
+    walk(document.body);
+    new MutationObserver(function (ms) {
+      for (var i = 0; i < ms.length; i++) {
+        var m = ms[i];
+        if (m.type === "characterData") fix(m.target);
+        else for (var j = 0; j < m.addedNodes.length; j++) {
+          var n = m.addedNodes[j];
+          if (n.nodeType === 3) fix(n); else if (n.nodeType === 1) walk(n);
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+  if (document.body) start(); else document.addEventListener("DOMContentLoaded", start);
+})();
+</script>
   </body>
 </html>
