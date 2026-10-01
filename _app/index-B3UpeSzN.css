@@ -5,3 +5,4 @@
 .z-share__big b{white-space:nowrap}
 .z-zones__row{transition:transform .9s var(--z-ease),padding-left .4s var(--z-ease)}.z-zones__row:hover{padding-left:0}@media (hover:hover) and (pointer:fine){.z-zones__row:hover{padding-left:10px}}
 p,li,h1,h2,h3,h4,figcaption{text-wrap:pretty}
+.scroll-scrub__route,.scroll-scrub__progress{display:none!important}
