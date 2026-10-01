@@ -2,3 +2,4 @@
 .scroll-scrub__title{font-size:min(6.2rem,6.4vw)}.scroll-scrub__copy{width:min(62rem,70vw);max-width:none}@media (max-width: 860px){.scroll-scrub__copy{width:min(100%,36rem)}.scroll-scrub__title{font-size:min(calc((100vw - 40px) / 10.2),3.5rem)}}@media (max-width: 700px){.z-beth .z-section__title{font-size:min(calc((100vw - 32px) / 8),9rem)}.z-section__title,.z-contacts__title{hyphens:auto;-webkit-hyphens:auto}}
 .z-email__frame{height:auto}.z-email__frame img{transition:none}.z-email__frame:hover img{transform:none}
 .z-counter{font-variant-numeric:tabular-nums}
+.z-share__big b{white-space:nowrap}
