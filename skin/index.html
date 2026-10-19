@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Гид по типам кожи — интерактивная презентация</title>
+<style>
+  html,body{margin:0;height:100%;background:#080808;overflow:hidden;-webkit-tap-highlight-color:transparent}
+  #wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  #stage{position:relative;flex:none;width:1920px;height:1080px;transform-origin:center center;overflow:hidden;background:#f2eff3;box-shadow:0 20px 60px rgba(0,0,0,.45);user-select:none}
+  .scr{position:absolute;inset:0;will-change:transform,opacity}
+  .scr img{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+  .hs{position:absolute;cursor:pointer;border-radius:18px;background:transparent;border:0;padding:0;outline:none;transition:background .35s,box-shadow .35s}
+  .hs:focus-visible{box-shadow:0 0 0 4px rgba(92,40,120,.55)}
+  #stage.hint .hs{background:rgba(64,140,255,.28);box-shadow:0 0 0 3px rgba(64,140,255,.7);transition:background .1s}
+</style>
+</head>
+<body>
+<div id="wrap"><div id="stage"></div></div>
+<script>
+(function(){
+  var W=1920, H=1080, IMG='img/';
+  var f=function(id){return id.replace(':','-')};
+  var NAV={
+    home:{r:[64,987,106,50],to:'2:6',tr:'fade'},
+    test:{r:[180,987,87,50],to:'2:133',tr:'fade'},
+    all:{r:[277,987,127,50],to:'2:223',tr:'fade'},
+    rules:{r:[414,987,123,50],to:'4:246',tr:'fade'}
+  };
+  function nav(skip){return Object.keys(NAV).filter(function(k){return k!==skip}).map(function(k){return NAV[k]})}
+  function back(to){return {r:[1676,984,56,56],to:to,tr:'back',key:'ArrowLeft'}}
+  function fwd(to){return {r:[1800,984,56,56],to:to,tr:'fwd',key:'ArrowRight'}}
+  var TYPES=['3:66','3:230','3:420','3:604','3:776'];
+  var COLS=[64,426,788,1150,1512];
+  function cards(y,h){return TYPES.map(function(id,i){return {r:[COLS[i],y,340,h],to:id,tr:'fade'}})}
+
+  var S={
+    '2:6':[{r:[64,737,228,73],to:'2:95',tr:'fwd'},{r:[344,737,257,77],to:'2:223',tr:'fwd'}].concat(nav('home'),[fwd('2:95')]),
+    '2:95':[{r:[64,837,302,73],to:'2:133',tr:'fwd'}].concat(nav(),[back('2:6'),fwd('2:133')]),
+    '2:133':cards(437,373).concat(nav('test'),[back('2:95'),fwd('2:223')]),
+    '2:223':cards(377,494).concat(nav('all'),[back('2:133'),fwd('3:66')]),
+    '4:246':nav('rules').concat([back('3:776'),fwd('4:291')]),
+    '4:291':nav().concat([back('4:246')])
+  };
+  // [morning, evening, back, forward, tab y]
+  [['3:66','3:148','2:223','3:230',347],
+   ['3:230','3:325','3:66','3:420',347],
+   ['3:420','3:512','3:230','3:604',347],
+   ['3:604','3:690','3:420','3:776',347],
+   ['3:776','3:876','3:604','4:246',403]].forEach(function(t){
+    S[t[0]]=[{r:[780,t[4],152,58],to:t[1],tr:'smart'}].concat(nav(),[back(t[2]),fwd(t[3])]);
+    S[t[1]]=[{r:[626,t[4],148,58],to:t[0],tr:'smart'}].concat(nav(),[back(t[2]),fwd(t[3])]);
+  });
+
+  var stage=document.getElementById('stage'), cur=null, curEl=null, busy=false;
+  Object.keys(S).forEach(function(id){var i=new Image(); i.src=IMG+f(id)+'.webp';});
+
+  function build(id){
+    var el=document.createElement('div'); el.className='scr';
+    var im=document.createElement('img'); im.src=IMG+f(id)+'.webp'; im.alt=''; el.appendChild(im);
+    S[id].forEach(function(h){
+      var b=document.createElement('button'); b.type='button'; b.className='hs';
+      b.style.left=h.r[0]+'px'; b.style.top=h.r[1]+'px'; b.style.width=h.r[2]+'px'; b.style.height=h.r[3]+'px';
+      if(h.r[3]<=80) b.style.borderRadius=(h.r[3]/2)+'px';
+      b.addEventListener('click',function(e){e.stopPropagation(); go(h.to,h.tr);});
+      el.appendChild(b);
+    });
+    return el;
+  }
+  function go(id,tr){
+    if(busy||id===cur) return;
+    var next=build(id), prev=curEl;
+    stage.appendChild(next); cur=id; curEl=next;
+    if(!prev) return;
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches){prev.remove(); return;}
+    busy=true;
+    var dur=tr==='smart'?320:tr==='fade'?300:380, ease='cubic-bezier(.22,.61,.36,1)', kfIn, kfOut=null;
+    if(tr==='fwd'){kfIn=[{transform:'translateX(100%)'},{transform:'none'}]; kfOut=[{transform:'none'},{transform:'translateX(-30%)',opacity:.6}];}
+    else if(tr==='back'){stage.insertBefore(next,prev); kfOut=[{transform:'none'},{transform:'translateX(100%)'}]; kfIn=[{transform:'translateX(-30%)',opacity:.6},{transform:'none',opacity:1}];}
+    else {kfIn=[{opacity:0},{opacity:1}];}
+    var a=next.animate(kfIn,{duration:dur,easing:ease});
+    if(kfOut) prev.animate(kfOut,{duration:dur,easing:ease,fill:'forwards'});
+    a.onfinish=function(){prev.remove(); busy=false;};
+  }
+
+  var hintT;
+  stage.addEventListener('click',function(){stage.classList.add('hint'); clearTimeout(hintT); hintT=setTimeout(function(){stage.classList.remove('hint')},450);});
+  document.addEventListener('keydown',function(e){
+    var h=(S[cur]||[]).filter(function(x){return x.key===e.key})[0];
+    if(h){e.preventDefault(); go(h.to,h.tr);}
+  });
+  var sx=null;
+  stage.addEventListener('touchstart',function(e){sx=e.touches[0].clientX},{passive:true});
+  stage.addEventListener('touchend',function(e){
+    if(sx==null) return; var dx=e.changedTouches[0].clientX-sx; sx=null;
+    if(Math.abs(dx)<60) return;
+    var h=(S[cur]||[]).filter(function(x){return x.key===(dx<0?'ArrowRight':'ArrowLeft')})[0]; if(h) go(h.to,h.tr);
+  });
+  function fit(){
+    var k=Math.min(window.innerWidth/W, window.innerHeight/H);
+    stage.style.transform='scale('+k+')'; stage.style.borderRadius=(14/k)+'px';
+  }
+  window.addEventListener('resize',fit); fit();
+  go('2:6');
+})();
+</script>
+</body>
+</html>
