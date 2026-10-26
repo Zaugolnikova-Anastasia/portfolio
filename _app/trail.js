@@ -4,65 +4,113 @@
 
   var cv = document.createElement('canvas');
   cv.setAttribute('aria-hidden', 'true');
-  cv.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:9999;mix-blend-mode:screen';
+  cv.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:9999;mix-blend-mode:difference';
   document.body.appendChild(cv);
   var ctx = cv.getContext('2d');
   var dpr = 1, W = 0, H = 0;
   function resize() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
     W = innerWidth; H = innerHeight;
-    cv.width = W * dpr; cv.height = H * dpr;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = true;
   }
   resize(); addEventListener('resize', resize);
 
-  var pts = [], LIFE = 520, running = false, hidden = false;
+  var raw = [], LIFE = 520, running = false, mx = -99, my = -99, hot = 0, hotT = 0, inside = false;
+  var st = document.createElement('style');
+  st.textContent = 'html.zt-on,html.zt-on *{cursor:none!important}html.zt-on .z-gal-modal,html.zt-on .z-gal-modal *,html.zt-on .zc-lb,html.zt-on .zc-lb *,html.zt-on .z-lightbox,html.zt-on .z-lightbox *{cursor:auto!important}html.zt-on .z-gal-modal a,html.zt-on .z-gal-modal button,html.zt-on .zc-lb button{cursor:pointer!important}';
+  document.head.appendChild(st); document.documentElement.classList.add('zt-on');
+  function kick() { if (!running) { running = true; requestAnimationFrame(draw); } }
+  // smoothed cursor (light easing removes jitter / stair-steps)
+  var sx = null, sy = null;
+  function push(x, y, t) {
+    if (sx == null) { sx = x; sy = y; }
+    sx += (x - sx) * 0.7; sy += (y - sy) * 0.7;
+    var last = raw[raw.length - 1];
+    if (last && Math.hypot(last.x - sx, last.y - sy) < 1.5) return;
+    raw.push({ x: sx, y: sy, t: t });
+  }
   addEventListener('pointermove', function (e) {
     if (e.pointerType !== 'mouse') return;
-    var t = performance.now(), last = pts[pts.length - 1];
-    if (last && Math.abs(last.x - e.clientX) + Math.abs(last.y - e.clientY) < 2) return;
-    pts.push({ x: e.clientX, y: e.clientY, t: t });
-    if (!running) { running = true; requestAnimationFrame(draw); }
+    mx = e.clientX; my = e.clientY; inside = true;
+    var el = e.target && e.target.closest ? e.target.closest('a,button,[role=button],input,textarea,select,label,video,iframe') : null;
+    hotT = el ? 1 : 0;
+    var list = e.getCoalescedEvents ? e.getCoalescedEvents() : null;
+    if (list && list.length) for (var i = 0; i < list.length; i++) push(list[i].clientX, list[i].clientY, performance.now());
+    else push(e.clientX, e.clientY, performance.now());
+    kick();
   }, { passive: true });
-  document.addEventListener('mouseleave', function () { pts.length = 0; });
-  // hide while a lightbox / modal is open
+  document.addEventListener('mouseleave', function () { raw.length = 0; sx = sy = null; inside = false; kick(); });
+  document.addEventListener('mouseenter', function () { inside = true; kick(); });
   function modalOpen() { return document.querySelector('.z-gal-modal, .zc-lb.is-open, .z-lightbox'); }
 
-  function draw(now) {
-    while (pts.length && now - pts[0].t > LIFE) pts.shift();
-    ctx.clearRect(0, 0, W, H);
-    if (pts.length > 1 && !modalOpen()) {
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      for (var pass = 0; pass < 2; pass++) {
-        for (var i = 1; i < pts.length; i++) {
-          var a = pts[i - 1], b = pts[i];
-          var k = 1 - (now - b.t) / LIFE;            // 0..1, fresher = 1
-          if (k <= 0) continue;
-          var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-          var pa = i > 1 ? { x: (pts[i - 2].x + a.x) / 2, y: (pts[i - 2].y + a.y) / 2 } : a;
-          ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.quadraticCurveTo(a.x, a.y, mx, my);
-          ctx.lineCap = pass === 0 ? 'butt' : 'round';
-          if (pass === 0) {                           // soft glow
-            ctx.strokeStyle = 'rgba(255,255,255,' + (0.18 * k) + ')';
-            ctx.lineWidth = 10 * k + 2;
-            ctx.shadowColor = 'rgba(255,255,255,' + (0.9 * k) + ')'; ctx.shadowBlur = 18;
-          } else {                                    // bright core
-            ctx.strokeStyle = 'rgba(255,255,255,' + (0.95 * k) + ')';
-            ctx.lineWidth = 2.2 * k + 0.4;
-            ctx.shadowBlur = 6; ctx.shadowColor = 'rgba(255,255,255,' + k + ')';
-          }
-          ctx.stroke();
-        }
-      }
-      ctx.shadowBlur = 0;
-      // star spark at the head
-      var h = pts[pts.length - 1], hk = 1 - (now - h.t) / LIFE;
-      if (hk > 0) {
-        var g = ctx.createRadialGradient(h.x, h.y, 0, h.x, h.y, 14);
-        g.addColorStop(0, 'rgba(255,255,255,' + 0.9 * hk + ')'); g.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(h.x, h.y, 14, 0, Math.PI * 2); ctx.fill();
+  // Catmull-Rom resampling -> dense, smooth centerline
+  function spline(p) {
+    var out = [];
+    for (var i = 0; i < p.length - 1; i++) {
+      var p0 = p[i - 1] || p[i], p1 = p[i], p2 = p[i + 1], p3 = p[i + 2] || p2;
+      var seg = Math.max(2, Math.ceil(Math.hypot(p2.x - p1.x, p2.y - p1.y) / 3));
+      for (var s = 0; s < seg; s++) {
+        var t = s / seg, t2 = t * t, t3 = t2 * t;
+        out.push({
+          x: 0.5 * (2 * p1.x + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+          y: 0.5 * (2 * p1.y + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
+          t: p1.t + (p2.t - p1.t) * t
+        });
       }
     }
-    if (pts.length) requestAnimationFrame(draw); else { running = false; ctx.clearRect(0, 0, W, H); }
+    out.push(p[p.length - 1]);
+    return out;
+  }
+
+  // tapered ribbon as one filled shape: no overlaps, no beads
+  function ribbon(c, now, maxW) {
+    var L = [], R = [], n = c.length;
+    for (var i = 0; i < n; i++) {
+      var a = c[Math.max(0, i - 1)], b = c[Math.min(n - 1, i + 1)];
+      var dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+      var k = Math.max(0, 1 - (now - c[i].t) / LIFE);
+      var w = maxW * Math.pow(k, 0.8) * Math.min(1, i / 6 + 0.15) / 2;
+      var nx = -dy / len * w, ny = dx / len * w;
+      L.push([c[i].x + nx, c[i].y + ny]); R.push([c[i].x - nx, c[i].y - ny]);
+    }
+    ctx.beginPath(); ctx.moveTo(L[0][0], L[0][1]);
+    for (i = 1; i < n; i++) ctx.lineTo(L[i][0], L[i][1]);
+    var h = c[n - 1], hw = Math.hypot(L[n - 1][0] - h.x, L[n - 1][1] - h.y);
+    var ang = Math.atan2(L[n - 1][1] - h.y, L[n - 1][0] - h.x);
+    ctx.arc(h.x, h.y, hw, ang, ang + Math.PI, true); // rounded head
+    for (i = n - 1; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]);
+    ctx.closePath();
+  }
+
+  function draw(now) {
+    while (raw.length && now - raw[0].t > LIFE) raw.shift();
+    ctx.clearRect(0, 0, W, H);
+    if (raw.length > 2 && !modalOpen()) {
+      var c = spline(inside ? raw.concat([{ x: mx, y: my, t: now }]) : raw), tail = c[0], head = c[c.length - 1];
+      var g = ctx.createLinearGradient(tail.x, tail.y, head.x, head.y);
+      g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.55, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,1)');
+      // glow
+      ctx.save(); ctx.globalAlpha = 0.28; ctx.shadowColor = 'rgba(255,255,255,.9)'; ctx.shadowBlur = 16;
+      ribbon(c, now, 9); ctx.fillStyle = g; ctx.fill(); ctx.restore();
+      // core
+      ctx.save(); ctx.shadowColor = 'rgba(255,255,255,.8)'; ctx.shadowBlur = 4;
+      ribbon(c, now, 2.4); ctx.fillStyle = g; ctx.fill(); ctx.restore();
+    }
+    // the cursor itself: glowing dot, grows into a ring over clickable things
+    hot += (hotT - hot) * 0.25;
+    var open = modalOpen();
+    if (inside && !open) {
+      var rg = ctx.createRadialGradient(mx, my, 0, mx, my, 16);
+      rg.addColorStop(0, 'rgba(255,255,255,.55)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(mx, my, 16, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(mx, my, 3.2 - hot * 1.2, 0, Math.PI * 2); ctx.fill();
+      if (hot > 0.02) {
+        ctx.strokeStyle = 'rgba(255,255,255,' + 0.85 * hot + ')'; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.arc(mx, my, 6 + 12 * hot, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+    if (raw.length || Math.abs(hot - hotT) > 0.01) requestAnimationFrame(draw); else { running = false; sx = sy = null; }
   }
 })();
