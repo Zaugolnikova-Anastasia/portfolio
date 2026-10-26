@@ -53,3 +53,14 @@ p,li,h1,h2,h3,h4,figcaption{text-wrap:pretty}
 .zc-lb__nav--prev{left:0}.zc-lb__nav--next{right:0}
 .zc-lb__stage img{width:auto;height:auto;min-height:min(70svh,820px);object-fit:contain}
 .zc-lb__stage img[data-wide]{min-height:0;width:min(92vw,1600px)}
+/* email carousel: doc cards scroll inside */
+.zc__card--doc{background:#fff}
+.zc__scroll{position:absolute;inset:0;overflow:hidden;display:block}
+.zc__scroll img,.zc__scroll video{position:absolute;left:0;top:0;width:100%;height:auto;object-fit:initial;display:block;pointer-events:none;transform:translateY(0);transition:transform .9s ease}
+.zc__card--doc.is-active .zc__scroll img,.zc__card--doc.is-active .zc__scroll video{animation:zc-docscroll var(--zc-dur,8s) ease-in-out .8s infinite alternate}
+@keyframes zc-docscroll{from{transform:translateY(0)}to{transform:translateY(var(--zc-shift,0))}}
+@media (prefers-reduced-motion:reduce){.zc__card--doc.is-active .zc__scroll img,.zc__card--doc.is-active .zc__scroll video{animation:none}}
+.zc-lb__doc{display:grid;place-items:center;max-height:100%;min-height:0}
+.zc-lb__doc video{max-width:min(92vw,1600px);max-height:calc(100svh - 120px);border-radius:12px}
+.zc-lb__doc.is-tall{place-items:start center;overflow-y:auto;height:calc(100svh - 110px);width:min(700px,92vw);border-radius:12px;overscroll-behavior:contain}
+.zc-lb__doc.is-tall img,.zc-lb__doc.is-tall video{width:100%;max-width:none;max-height:none;min-height:0;height:auto;border-radius:12px}

@@ -43,6 +43,13 @@
     { src: 'info-17', w: 603, h: 804, t: 'Виброплатформа', s: 'Ключевые характеристики' }
   ];
 
+  var EMAILS = [
+    { src: 'email-ambdoc', video: 1, w: 700, h: 3014, t: '«Амбулаторный врач»', s: 'Анонс вебинаров · анимированное письмо' },
+    { src: 'email-tnf-1', w: 600, h: 1548, t: 'TNF EXPO', s: '«Что вас ждёт на TNF EXPO?» · тёмная версия' },
+    { src: 'email-tnf-2', w: 600, h: 1696, t: 'TNF EXPO', s: '«Первый день EXPO» · программа дня' },
+    { src: 'email-tnf-3', w: 600, h: 1410, t: 'TNF EXPO', s: '«Получите доступ в ТЭК» · BUSINESS формат' }
+  ];
+
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
@@ -52,9 +59,9 @@
   function lbBuild() {
     lb = el('div', 'zc-lb'); lb.setAttribute('role', 'dialog'); lb.setAttribute('aria-modal', 'true');
     lb.innerHTML = '<div class="zc-lb__bar"><span class="zc-lb__cap"></span><span class="zc-lb__count"></span><button type="button" class="zc-lb__close">Закрыть</button></div>' +
-      '<div class="zc-lb__stage"><button type="button" class="zc-lb__nav zc-lb__nav--prev" aria-label="Назад">←</button><img alt=""><button type="button" class="zc-lb__nav zc-lb__nav--next" aria-label="Вперёд">→</button></div>';
+      '<div class="zc-lb__stage"><button type="button" class="zc-lb__nav zc-lb__nav--prev" aria-label="Назад">←</button><div class="zc-lb__doc"><img alt=""><video muted loop playsinline></video></div><button type="button" class="zc-lb__nav zc-lb__nav--next" aria-label="Вперёд">→</button></div>';
     document.body.appendChild(lb);
-    lbImg = lb.querySelector('img'); lbCap = lb.querySelector('.zc-lb__cap'); lbCount = lb.querySelector('.zc-lb__count');
+    lbImg = lb.querySelector('img'); lb._v = lb.querySelector('video'); lb._doc = lb.querySelector('.zc-lb__doc'); lbCap = lb.querySelector('.zc-lb__cap'); lbCount = lb.querySelector('.zc-lb__count');
     lb.querySelector('.zc-lb__close').onclick = lbClose;
     lb.querySelector('.zc-lb__nav--prev').onclick = function (e) { e.stopPropagation(); lbGo(-1); };
     lb.querySelector('.zc-lb__nav--next').onclick = function (e) { e.stopPropagation(); lbGo(1); };
@@ -69,13 +76,16 @@
   }
   function lbShow() {
     var it = lbList[lbIdx];
+    var tall = it.h / it.w > 1.7; lb._doc.classList.toggle('is-tall', tall); lb._doc.scrollTop = 0;
+    if (it.video) { lbImg.style.display = 'none'; lb._v.style.display = ''; lb._v.src = B + it.src + '.mp4'; lb._v.poster = B + it.src + '.webp'; lb._v.play && lb._v.play().catch(function(){}); }
+    else { lb._v.pause && lb._v.pause(); lb._v.removeAttribute('src'); lb._v.style.display = 'none'; lbImg.style.display = ''; }
     lbImg.src = B + it.src + '.webp'; if (it.w > it.h) lbImg.setAttribute('data-wide', ''); else lbImg.removeAttribute('data-wide'); lbImg.alt = it.t + ' — ' + it.s;
     lbCap.innerHTML = '<b>' + it.t + '</b> · ' + it.s; lbCount.textContent = (lbIdx + 1) + ' / ' + lbList.length;
     lbImg.classList.remove('is-in'); void lbImg.offsetWidth; lbImg.classList.add('is-in');
   }
   function lbOpen(list, i, onclose) { if (!lb) lbBuild(); lbList = list; lbIdx = i; lb._onclose = onclose; lbShow(); lb.classList.add('is-open'); document.body.style.overflow = 'hidden'; }
   function lbGo(d) { lbIdx = (lbIdx + d + lbList.length) % lbList.length; lbShow(); }
-  function lbClose() { lb.classList.remove('is-open'); document.body.style.overflow = ''; if (lb._onclose) lb._onclose(); }
+  function lbClose() { lb._v.pause && lb._v.pause(); lb.classList.remove('is-open'); document.body.style.overflow = ''; if (lb._onclose) lb._onclose(); }
 
   /* ---------- coverflow carousel ---------- */
   function Carousel(root, items, opt) {
@@ -93,7 +103,10 @@
     items.forEach(function (it, i) {
       var c = el('button', 'zc__card'); c.type = 'button';
       c.setAttribute('aria-label', it.t + ' — ' + it.s);
-      c.innerHTML = '<img src="' + B + it.src + '.webp" alt="" loading="lazy" decoding="async"><span class="zc__zoom" aria-hidden="true">Открыть</span>';
+      var media = it.video ? '<video src="' + B + it.src + '.mp4" poster="' + B + it.src + '.webp" muted loop playsinline autoplay preload="metadata"></video>'
+        : '<img src="' + B + it.src + '.webp" alt="" loading="lazy" decoding="async">';
+      c.innerHTML = (opt.aspect ? '<span class="zc__scroll">' + media + '</span>' : media) + '<span class="zc__zoom" aria-hidden="true">Открыть</span>';
+      if (opt.aspect) c.classList.add('zc__card--doc');
       c.onclick = function () {
         if (i === active) { stopAuto(); lbOpen(items, i, function () { startAuto(); }); }
         else go(i, true);
@@ -114,7 +127,8 @@
       var off = items.map(function (_, i) { var d = i - active; if (d > half) d -= n; if (d < -half) d += n; return d; });
       function sc(d) { d = Math.abs(d); return d === 0 ? 1 : Math.max(0.56, opt.side - 0.07 * (d - 1)); }
       var maxW = W * (W < 640 ? 0.86 : 0.6);
-      function wid(i) { return Math.min(h * items[i].w / items[i].h, maxW); }
+      function ar(i) { return opt.aspect || (items[i].w / items[i].h); }
+      function wid(i) { return Math.min(h * ar(i), maxW); }
       // cumulative x for right & left sides
       var idxBy = {}; off.forEach(function (d, i) { idxBy[d] = i; });
       pos[0] = W / 2;
@@ -125,7 +139,8 @@
       cards.forEach(function (c, i) {
         var d = off[i], s = sc(d), w = wid(i), cx = pos[d];
         var far = Math.abs(d) > opt.show;
-        var ch = w * items[i].h / items[i].w;
+        var ch = w / ar(i);
+        if (opt.aspect) { var full = w * items[i].h / items[i].w; c.style.setProperty('--zc-shift', (-(full - ch)) + 'px'); c.style.setProperty('--zc-dur', Math.max(6, (full - ch) / 70) + 's'); }
         c.style.width = w + 'px'; c.style.height = ch + 'px';
         c.style.transform = 'translate3d(' + (cx - w / 2) + 'px,' + ((h - ch) / 2) + 'px,0) scale(' + s + ')';
         c.style.opacity = far ? 0 : (d === 0 ? 1 : Math.max(0.25, 0.8 - 0.18 * (Math.abs(d) - 1)));
@@ -188,6 +203,15 @@
       title: 'Инфографика', meta: 'Карточки для маркетплейсов: товары для праздника, аксессуары и украшения, БАДы, косметика, детская и женская одежда, игрушки, техника', cls: 'zc--tall',
       height: function (w) { return w < 640 ? Math.round(w * 0.78) : Math.min(440, Math.round(w * 0.34)); },
       gap: 16, side: 0.8, show: 4, interval: 2600
+    });
+    mountEmail(root);
+  }
+  function mountEmail(root) {
+    Carousel(root, EMAILS, {
+      title: 'E-mail рассылки', meta: 'Письма для TNF EXPO и «Амбулаторного врача» — вёрстка под HTML', cls: 'zc--tall zc--email',
+      aspect: 0.72,
+      height: function (w) { return w < 640 ? Math.round(w * 0.95) : Math.min(500, Math.round(w * 0.38)); },
+      gap: 18, side: 0.8, show: 3, interval: 7500
     });
   }
   function scan() { var r = document.querySelector('.z-car-root'); if (r) mount(r); }
