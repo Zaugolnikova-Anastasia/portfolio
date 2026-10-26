@@ -8,6 +8,7 @@
     { src: 'oiro-2', w: 720, h: 400, t: 'OIRO', s: 'Бельё · «Надень настроение»' },
     { src: 'kaspersky-2', w: 1920, h: 1080, t: 'Kaspersky', s: '«Прыгай в сеть, 6-7!» · защита для детей' },
     { src: 'tanuki-3', w: 1680, h: 568, t: 'Тануки', s: 'Промо «2 по цене 1» на роллы' },
+    { src: 'medwebinar', w: 1440, h: 480, t: 'Вебинары для врачей', s: 'Образовательная программа · ноябрь 2026' },
     { src: 'villeroy', w: 825, h: 311, t: 'Villeroy & Boch', s: 'Новая коллекция посуды' },
     { src: 'tanuki-2', w: 688, h: 234, t: 'Тануки', s: '1 + 1 = 1 · акция на роллы' },
     { src: 'tnf', w: 1600, h: 900, t: 'TNF EXPO', s: 'Форум ТЭК · 308 макетов: РСЯ, сайт, email' }
@@ -160,7 +161,7 @@
   function mount(root) {
     if (root.dataset.zc) return; root.dataset.zc = '1';
     Carousel(root, BANNERS, {
-      title: 'Баннеры', meta: 'OIRO, Kaspersky, «Тануки», #FARШ, Villeroy & Boch, TNF EXPO', cls: 'zc--wide',
+      title: 'Баннеры', meta: 'OIRO, Kaspersky, «Тануки», #FARШ, медвебинары, Villeroy & Boch, TNF EXPO', cls: 'zc--wide',
       height: function (w) { return w < 640 ? Math.round(w * 0.42) : Math.min(360, Math.round(w * 0.26)); },
       gap: 18, side: 0.78, show: 3, interval: 3400
     });
