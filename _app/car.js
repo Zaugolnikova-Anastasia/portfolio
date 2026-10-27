@@ -169,7 +169,7 @@
         var m = getComputedStyle(prog).transform, sc = 0;
         if (m && m !== 'none') sc = parseFloat(m.split('(')[1]) || 0;
         prog.style.transition = 'none'; prog.style.transform = 'scaleX(' + sc + ')'; void prog.offsetWidth;
-        prog.style.transition = 'transform ' + Math.round(250 + 250 * sc) + 'ms cubic-bezier(.22,.8,.24,1)';
+        prog.style.transition = 'transform ' + Math.round(180 + 170 * sc) + 'ms cubic-bezier(.22,.8,.24,1)';
         prog.style.transform = 'scaleX(0)';
       } else { prog.style.transition = 'none'; prog.style.transform = 'scaleX(0)'; }
     }
@@ -204,12 +204,12 @@
     Carousel(root, BANNERS, {
       title: 'Баннеры', meta: 'OIRO, Kaspersky, «Тануки», #FARШ, медвебинары, Villeroy & Boch, TNF EXPO', cls: 'zc--wide',
       height: function (w) { return w < 640 ? Math.round(w * 0.42) : Math.min(360, Math.round(w * 0.26)); },
-      gap: 18, side: 0.78, show: 3, interval: 3400
+      gap: 18, side: 0.78, show: 3, interval: 2400
     });
     Carousel(root, INFO, {
       title: 'Инфографика', meta: 'Карточки для маркетплейсов: товары для праздника, аксессуары и украшения, БАДы, косметика, детская и женская одежда, игрушки, техника', cls: 'zc--tall',
       height: function (w) { return w < 640 ? Math.round(w * 0.78) : Math.min(440, Math.round(w * 0.34)); },
-      gap: 16, side: 0.8, show: 4, interval: 2600
+      gap: 16, side: 0.8, show: 4, interval: 1800
     });
     mountEmail(root);
   }
@@ -218,7 +218,7 @@
       title: 'E-mail рассылки', meta: 'Письма для TNF EXPO и «Амбулаторного врача» — вёрстка под HTML', cls: 'zc--tall zc--email',
       aspect: 0.72,
       height: function (w) { return w < 640 ? Math.round(w * 0.95) : Math.min(500, Math.round(w * 0.38)); },
-      gap: 18, side: 0.8, show: 3, interval: 7500
+      gap: 18, side: 0.8, show: 3, interval: 5000
     });
   }
   function scan() { var r = document.querySelector('.z-car-root'); if (r) mount(r); }
