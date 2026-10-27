@@ -17,59 +17,70 @@
   }
   resize(); addEventListener('resize', resize);
 
-  var star = new Image(); star.src = '/portfolio/assets/brand/cursor-star.png';
+  var star = new Image(), starC = null;
+  star.onload = function () {
+    var S = 26, pad = 12, sw = S, sh = S * 307 / 261, c = document.createElement('canvas'), q = Math.max(2, dpr);
+    c.width = Math.ceil((sw + pad * 2) * q); c.height = Math.ceil((sh + pad * 2) * q);
+    var x = c.getContext('2d'); x.scale(q, q);
+    var g = x.createRadialGradient(pad + sw * 130 / 261, pad + sh * 127 / 307, 0, pad + sw * 130 / 261, pad + sh * 127 / 307, 14);
+    g.addColorStop(0, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, sw + pad * 2, sh + pad * 2);
+    x.shadowColor = 'rgba(255,255,255,.7)'; x.shadowBlur = 6; x.drawImage(star, pad, pad, sw, sh);
+    starC = { c: c, w: sw + pad * 2, h: sh + pad * 2, ox: pad + sw * 130 / 261, oy: pad + sh * 127 / 307 };
+  };
+  star.src = '/portfolio/assets/brand/cursor-star.png';
   var raw = [], LIFE = 520, running = false, mx = -99, my = -99, hot = 0, hotT = 0, inside = false;
   var st = document.createElement('style');
   st.textContent = 'html.zt-on,html.zt-on *{cursor:none!important}html.zt-on .z-gal-modal,html.zt-on .z-gal-modal *,html.zt-on .zc-lb,html.zt-on .zc-lb *,html.zt-on .z-lightbox,html.zt-on .z-lightbox *{cursor:auto!important}html.zt-on .z-gal-modal a,html.zt-on .z-gal-modal button,html.zt-on .zc-lb button{cursor:pointer!important}';
   document.head.appendChild(st); document.documentElement.classList.add('zt-on');
   function kick() { if (!running) { running = true; requestAnimationFrame(draw); } }
-  // smoothed cursor (light easing removes jitter / stair-steps)
-  var sx = null, sy = null;
-  function push(x, y, t) {
-    if (sx == null) { sx = x; sy = y; }
-    sx += (x - sx) * 0.7; sy += (y - sy) * 0.7;
+  // spring-follower head: sampled every frame -> evenly spaced, naturally rounded path
+  var hx = null, hy = null, vx = 0, vy = 0, lastT = 0;
+  function step(now) {
+    if (hx == null) { hx = mx; hy = my; vx = vy = 0; }
+    var dt = Math.min(2.5, Math.max(0.5, (now - (lastT || now - 16.7)) / 16.7)); lastT = now;
+    for (var k = 0; k < 2; k++) {            // 2 substeps for stability
+      var h = dt / 2;
+      vx += (mx - hx) * 0.55 * h; vy += (my - hy) * 0.55 * h;
+      var d = Math.pow(0.3, h); vx *= d; vy *= d;
+      hx += vx * h; hy += vy * h;
+    }
     var last = raw[raw.length - 1];
-    if (last && Math.hypot(last.x - sx, last.y - sy) < 1.5) return;
-    raw.push({ x: sx, y: sy, t: t });
+    if (!last || Math.hypot(last.x - hx, last.y - hy) > 0.6) raw.push({ x: hx, y: hy, t: now });
   }
-  addEventListener('pointermove', function (e) {
+  addEventListener('onpointerrawupdate' in window ? 'pointerrawupdate' : 'pointermove', function (e) {
     if (e.pointerType !== 'mouse') return;
     mx = e.clientX; my = e.clientY; inside = true;
-    var el = e.target && e.target.closest ? e.target.closest('a,button,[role=button],input,textarea,select,label,video,iframe') : null;
-    hotT = el ? 1 : 0;
-    var list = e.getCoalescedEvents ? e.getCoalescedEvents() : null;
-    if (list && list.length) for (var i = 0; i < list.length; i++) push(list[i].clientX, list[i].clientY, performance.now());
-    else push(e.clientX, e.clientY, performance.now());
     kick();
   }, { passive: true });
-  document.addEventListener('mouseleave', function () { raw.length = 0; sx = sy = null; inside = false; kick(); });
+  document.addEventListener('pointerover', function (e) {
+    var el = e.target && e.target.closest ? e.target.closest('a,button,[role=button],input,textarea,select,label,video,iframe') : null;
+    hotT = el ? 1 : 0; kick();
+  }, { passive: true });
+  document.addEventListener('mouseleave', function () { raw.length = 0; hx = hy = null; inside = false; kick(); });
   document.addEventListener('mouseenter', function () { inside = true; kick(); });
   function modalOpen() { return document.querySelector('.z-gal-modal, .zc-lb.is-open, .z-lightbox'); }
 
-  // Catmull-Rom resampling -> dense, smooth centerline
-  function spline(p) {
-    var out = [];
-    for (var i = 0; i < p.length - 1; i++) {
-      var p0 = p[i - 1] || p[i], p1 = p[i], p2 = p[i + 1], p3 = p[i + 2] || p2;
-      var seg = Math.max(2, Math.ceil(Math.hypot(p2.x - p1.x, p2.y - p1.y) / 3));
-      for (var s = 0; s < seg; s++) {
-        var t = s / seg, t2 = t * t, t3 = t2 * t;
-        out.push({
-          x: 0.5 * (2 * p1.x + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
-          y: 0.5 * (2 * p1.y + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
-          t: p1.t + (p2.t - p1.t) * t
-        });
+  // Chaikin corner-cutting: removes any leftover angles
+  function smooth(p, it) {
+    for (var n = 0; n < it; n++) {
+      if (p.length < 3) return p;
+      var o = [p[0]];
+      for (var i = 0; i < p.length - 1; i++) {
+        var a = p[i], b = p[i + 1];
+        o.push({ x: a.x * .75 + b.x * .25, y: a.y * .75 + b.y * .25, t: a.t * .75 + b.t * .25 });
+        o.push({ x: a.x * .25 + b.x * .75, y: a.y * .25 + b.y * .75, t: a.t * .25 + b.t * .75 });
       }
+      o.push(p[p.length - 1]); p = o;
     }
-    out.push(p[p.length - 1]);
-    return out;
+    return p;
   }
 
   // tapered ribbon as one filled shape: no overlaps, no beads
   function ribbon(c, now, maxW) {
     var L = [], R = [], n = c.length;
     for (var i = 0; i < n; i++) {
-      var a = c[Math.max(0, i - 1)], b = c[Math.min(n - 1, i + 1)];
+      var a = c[Math.max(0, i - 3)], b = c[Math.min(n - 1, i + 3)];
       var dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
       var k = Math.max(0, 1 - (now - c[i].t) / LIFE);
       var w = maxW * Math.pow(k, 0.8) * Math.min(1, i / 6 + 0.15) / 2;
@@ -86,34 +97,29 @@
   }
 
   function draw(now) {
+    if (inside) step(now);
     while (raw.length && now - raw[0].t > LIFE) raw.shift();
     ctx.clearRect(0, 0, W, H);
-    if (raw.length > 2 && !modalOpen()) {
-      var c = spline(inside ? raw.concat([{ x: mx, y: my, t: now }]) : raw), tail = c[0], head = c[c.length - 1];
+    var open = modalOpen();
+    if (raw.length > 2 && !open) {
+      var c = smooth(inside ? raw.concat([{ x: mx, y: my, t: now }]) : raw, 2), tail = c[0], head = c[c.length - 1];
       var g = ctx.createLinearGradient(tail.x, tail.y, head.x, head.y);
       g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.55, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,1)');
       // glow
-      ctx.save(); ctx.globalAlpha = 0.28; ctx.shadowColor = 'rgba(255,255,255,.9)'; ctx.shadowBlur = 16;
-      ribbon(c, now, 9); ctx.fillStyle = g; ctx.fill(); ctx.restore();
-      // core
-      ctx.save(); ctx.shadowColor = 'rgba(255,255,255,.8)'; ctx.shadowBlur = 4;
-      ribbon(c, now, 2.4); ctx.fillStyle = g; ctx.fill(); ctx.restore();
+      ctx.fillStyle = g;
+      ctx.globalAlpha = 0.07; ribbon(c, now, 16); ctx.fill();
+      ctx.globalAlpha = 0.16; ribbon(c, now, 8); ctx.fill();
+      ctx.globalAlpha = 1; ribbon(c, now, 2.4); ctx.fill();
     }
     // the cursor itself: glowing dot, grows into a ring over clickable things
     hot += (hotT - hot) * 0.25;
-    var open = modalOpen();
     if (inside && !open) {
-      var rg = ctx.createRadialGradient(mx, my, 0, mx, my, 14);
-      rg.addColorStop(0, 'rgba(255,255,255,.35)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(mx, my, 14, 0, Math.PI * 2); ctx.fill();
-      if (star.complete && star.naturalWidth) {
-        var sw = 26 * (1 + 0.35 * hot), sh = sw * 307 / 261;
-        ctx.save(); ctx.translate(mx, my);
-        ctx.shadowColor = 'rgba(255,255,255,.7)'; ctx.shadowBlur = 6;
-        ctx.drawImage(star, -sw * 130 / 261, -sh * 127 / 307, sw, sh);
-        ctx.restore();
+      if (starC) {
+        var z = 1 + 0.35 * hot;
+        ctx.drawImage(starC.c, mx - starC.ox * z, my - starC.oy * z, starC.w * z, starC.h * z);
       } else { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(mx, my, 3, 0, Math.PI * 2); ctx.fill(); }
       }
-    if (raw.length || Math.abs(hot - hotT) > 0.01) requestAnimationFrame(draw); else { running = false; sx = sy = null; }
+    var moving = inside && hx != null && (Math.abs(mx - hx) + Math.abs(my - hy) > 0.3 || Math.abs(vx) + Math.abs(vy) > 0.05);
+    if (raw.length > 1 || moving || Math.abs(hot - hotT) > 0.01) requestAnimationFrame(draw); else { running = false; raw.length = 0; lastT = 0; }
   }
 })();
