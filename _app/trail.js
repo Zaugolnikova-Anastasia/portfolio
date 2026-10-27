@@ -108,7 +108,7 @@
       ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(mx, my, 14, 0, Math.PI * 2); ctx.fill();
       if (star.complete && star.naturalWidth) {
         var sw = 26 * (1 + 0.35 * hot), sh = sw * 307 / 261;
-        ctx.save(); ctx.translate(mx, my); ctx.rotate(hot * 0.35);
+        ctx.save(); ctx.translate(mx, my);
         ctx.shadowColor = 'rgba(255,255,255,.7)'; ctx.shadowBlur = 6;
         ctx.drawImage(star, -sw * 130 / 261, -sh * 127 / 307, sw, sh);
         ctx.restore();
