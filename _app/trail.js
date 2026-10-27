@@ -17,6 +17,7 @@
   }
   resize(); addEventListener('resize', resize);
 
+  var star = new Image(); star.src = '/portfolio/assets/brand/cursor-star.png';
   var raw = [], LIFE = 520, running = false, mx = -99, my = -99, hot = 0, hotT = 0, inside = false;
   var st = document.createElement('style');
   st.textContent = 'html.zt-on,html.zt-on *{cursor:none!important}html.zt-on .z-gal-modal,html.zt-on .z-gal-modal *,html.zt-on .zc-lb,html.zt-on .zc-lb *,html.zt-on .z-lightbox,html.zt-on .z-lightbox *{cursor:auto!important}html.zt-on .z-gal-modal a,html.zt-on .z-gal-modal button,html.zt-on .zc-lb button{cursor:pointer!important}';
@@ -102,15 +103,17 @@
     hot += (hotT - hot) * 0.25;
     var open = modalOpen();
     if (inside && !open) {
-      var rg = ctx.createRadialGradient(mx, my, 0, mx, my, 16);
-      rg.addColorStop(0, 'rgba(255,255,255,.55)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(mx, my, 16, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(mx, my, 3.2 - hot * 1.2, 0, Math.PI * 2); ctx.fill();
-      if (hot > 0.02) {
-        ctx.strokeStyle = 'rgba(255,255,255,' + 0.85 * hot + ')'; ctx.lineWidth = 1.4;
-        ctx.beginPath(); ctx.arc(mx, my, 6 + 12 * hot, 0, Math.PI * 2); ctx.stroke();
+      var rg = ctx.createRadialGradient(mx, my, 0, mx, my, 14);
+      rg.addColorStop(0, 'rgba(255,255,255,.35)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(mx, my, 14, 0, Math.PI * 2); ctx.fill();
+      if (star.complete && star.naturalWidth) {
+        var sw = 26 * (1 + 0.35 * hot), sh = sw * 307 / 261;
+        ctx.save(); ctx.translate(mx, my); ctx.rotate(hot * 0.35);
+        ctx.shadowColor = 'rgba(255,255,255,.7)'; ctx.shadowBlur = 6;
+        ctx.drawImage(star, -sw * 130 / 261, -sh * 127 / 307, sw, sh);
+        ctx.restore();
+      } else { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(mx, my, 3, 0, Math.PI * 2); ctx.fill(); }
       }
-    }
     if (raw.length || Math.abs(hot - hotT) > 0.01) requestAnimationFrame(draw); else { running = false; sx = sy = null; }
   }
 })();
