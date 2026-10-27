@@ -99,3 +99,8 @@ p,li,h1,h2,h3,h4,figcaption{text-wrap:pretty}
 .scroll-scrub__tags li{border-radius:999px;padding:.5rem 1rem}
 .z-cta-works,.z-cta-contact{border-radius:999px;min-height:56px;box-sizing:border-box;padding:0 26px}
 .z-cta-contact{padding-left:20px;border:1px solid var(--z-ink)}
+@media (min-width:1081px){
+  .z-nav{gap:16px}
+  .z-nav__links{flex-wrap:nowrap;gap:2px;min-width:0}
+  .z-nav__links a{white-space:nowrap;font-size:clamp(.72rem,calc(.1rem + .82vw),.86rem);padding:6px clamp(6px,.6vw,10px)}
+}
