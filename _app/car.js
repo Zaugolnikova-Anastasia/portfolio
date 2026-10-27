@@ -106,7 +106,7 @@
       c.innerHTML = (opt.aspect ? '<span class="zc__scroll">' + media + '</span>' : media) + '<span class="zc__zoom" aria-hidden="true">Открыть</span>';
       if (opt.aspect) c.classList.add('zc__card--doc');
       c.onclick = function () {
-        if (i === active) { stopAuto(); lbOpen(items, i, function () { startAuto(); }); }
+        if (i === active) { stopAuto(true); lbOpen(items, i, function () { startAuto(); }); }
         else go(i, true);
       };
       stage.appendChild(c); cards.push(c);
@@ -163,14 +163,23 @@
       prog.style.transition = 'transform ' + opt.interval + 'ms linear'; prog.style.transform = 'scaleX(1)';
       timer = setTimeout(function () { timer = null; tick(); startAuto(); }, opt.interval);
     }
-    function stopAuto() { clearTimeout(timer); timer = null; prog.style.transition = 'none'; prog.style.transform = 'scaleX(0)'; }
+    function stopAuto(soft) {
+      clearTimeout(timer); timer = null;
+      if (soft) {
+        var m = getComputedStyle(prog).transform, sc = 0;
+        if (m && m !== 'none') sc = parseFloat(m.split('(')[1]) || 0;
+        prog.style.transition = 'none'; prog.style.transform = 'scaleX(' + sc + ')'; void prog.offsetWidth;
+        prog.style.transition = 'transform ' + Math.round(250 + 250 * sc) + 'ms cubic-bezier(.22,.8,.24,1)';
+        prog.style.transform = 'scaleX(0)';
+      } else { prog.style.transition = 'none'; prog.style.transform = 'scaleX(0)'; }
+    }
 
     head.querySelectorAll('.zc__btn').forEach(function (b) { b.onclick = function () { go(active + (+b.dataset.d), true); }; });
     stage.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight') { e.preventDefault(); go(active + 1, true); } if (e.key === 'ArrowLeft') { e.preventDefault(); go(active - 1, true); } });
-    wrap.addEventListener('mouseenter', function () { paused = true; stopAuto(); });
+    wrap.addEventListener('mouseenter', function () { paused = true; stopAuto(true); });
     wrap.addEventListener('mouseleave', function () { paused = false; startAuto(); });
     var sx = null, sy = null;
-    stage.addEventListener('touchstart', function (e) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; paused = true; stopAuto(); }, { passive: true });
+    stage.addEventListener('touchstart', function (e) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; paused = true; stopAuto(true); }, { passive: true });
     stage.addEventListener('touchend', function (e) {
       var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null; paused = false;
       if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) go(active + (dx < 0 ? 1 : -1), true); else startAuto();
