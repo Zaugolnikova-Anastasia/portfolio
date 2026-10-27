@@ -95,3 +95,7 @@ p,li,h1,h2,h3,h4,figcaption{text-wrap:pretty}
 .z-qnav__cell:last-child{grid-column:1/-1}
 .z-qnav__cell:last-child .z-qnav__card{min-height:0;flex-direction:row;align-items:baseline;gap:16px}
 .z-qnav__cell:last-child .z-qnav__d{margin-top:0}
+/* hero: unified pill shapes */
+.scroll-scrub__tags li{border-radius:999px;padding:.5rem 1rem}
+.z-cta-works,.z-cta-contact{border-radius:999px;min-height:56px;box-sizing:border-box;padding:0 26px}
+.z-cta-contact{padding-left:20px;border:1px solid var(--z-ink)}
