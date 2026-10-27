@@ -92,3 +92,6 @@ p,li,h1,h2,h3,h4,figcaption{text-wrap:pretty}
 .z-qnav__cell{display:flex;min-width:0}
 .z-qnav__card{flex:1;height:auto;box-sizing:border-box;min-width:0;overflow-wrap:anywhere}
 .z-qnav__t{overflow-wrap:normal;hyphens:auto}
+.z-qnav__cell:last-child{grid-column:1/-1}
+.z-qnav__cell:last-child .z-qnav__card{min-height:0;flex-direction:row;align-items:baseline;gap:16px}
+.z-qnav__cell:last-child .z-qnav__d{margin-top:0}
