@@ -2,6 +2,7 @@
   var B = '/portfolio/assets/work/carousel/';
   var BANNERS = [
     { src: 'oiro-1', w: 720, h: 400, t: 'OIRO', s: 'Бельё · «Надень настроение»' },
+    { src: 'cian-kv', video: 1, w: 960, h: 540, t: 'Циан', s: 'Анимированный KV · «Сравнивайте ЖК по важным параметрам»' },
     { src: 'kaspersky-1', w: 1920, h: 1080, t: 'Kaspersky', s: '«Балансируешь работу и жизнь?» · скидка до 20%' },
     { src: 'tanuki-1', w: 1680, h: 568, t: 'Тануки', s: 'Промо «2 по цене 1» на роллы' },
     { src: 'farsh', w: 1920, h: 1080, t: '#FARШ', s: 'Франшиза бургерной · 70+ ресторанов' },
@@ -220,7 +221,7 @@
   function mount(root) {
     if (root.dataset.zc) return; root.dataset.zc = '1';
     Carousel(root, BANNERS, {
-      title: 'Баннеры', meta: 'OIRO, Kaspersky, «Тануки», #FARШ, медвебинары, Villeroy & Boch, TNF EXPO', cls: 'zc--wide',
+      title: 'Баннеры', meta: 'OIRO, Циан, Kaspersky, «Тануки», #FARШ, медвебинары, Villeroy & Boch, TNF EXPO', cls: 'zc--wide',
       height: function (w) { return w < 640 ? Math.round(w * 0.42) : Math.min(360, Math.round(w * 0.26)); },
       gap: 18, side: 0.78, show: 3, interval: 2400
     });
